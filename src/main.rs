@@ -1,5 +1,5 @@
 use std::env::set_current_dir;
-use std::fs::read_to_string;
+use std::fs::{read_dir, read_to_string};
 use std::io;
 use std::io::Write;
 use std::path::Path;
@@ -12,6 +12,10 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     check: bool,
 
+    /// Create a script for the files in the current directory
+    #[arg(short, long, default_value_t = false)]
+    new: bool,
+
     /// Script pathname
     #[arg()]
     script: String
@@ -20,14 +24,17 @@ struct Args {
 fn main() {
     let args = Args::parse();
 
-    let path = Path::new(&args.script);
-    let script = read_file(path);
-    println!("Script read");
+    let script_pathname = Path::new(&args.script);
 
-    let parent = path.parent().unwrap();
-    if parent.is_dir() {
-        set_current_dir(parent).expect(format!("Unable to change directory to {}", parent.to_str().unwrap()).as_str());
+    set_current_directory(script_pathname);
+
+    if args.new {
+        new_script(script_pathname);
+        return;
     }
+
+    let script = read_file(script_pathname);
+    println!("Script read");
 
     let tracks = parse_script(script);
     println!("Script parsed, {} tracks", tracks.iter().filter(|track| !track.is_default).count());
@@ -72,8 +79,46 @@ impl Track {
     }
 }
 
-fn read_file(path: &Path) -> String {
-    read_to_string(path).expect("Unable to read file")
+fn set_current_directory(script_pathname: &Path) {
+    let parent = script_pathname.parent().unwrap();
+    if parent.is_dir() {
+        set_current_dir(parent).expect(format!("Unable to change directory to {}", parent.to_str().unwrap()).as_str());
+    }
+}
+
+fn new_script(script_pathname: &Path) {
+    let files = read_dir(".").unwrap();
+
+    let create_error = "Unable to create file";
+    let write_error = "Unable to write to file";
+
+    let mut script_file = std::fs::File::create(script_pathname).expect(create_error);
+
+    writeln!(script_file, "new_filename={{track}} {{title}}.mp3").expect(write_error);
+    writeln!(script_file, "artist=TODO").expect(write_error);
+    writeln!(script_file, "album=TODO").expect(write_error);
+    writeln!(script_file, "year=TODO").expect(write_error);
+    writeln!(script_file, "genre=TODO").expect(write_error);
+    writeln!(script_file, "delete_tag=TXXX").expect(write_error);
+    writeln!(script_file, "delete_tag=TPE2").expect(write_error);
+    writeln!(script_file, "delete_tag=TSSE").expect(write_error);
+
+    for file in files {
+        let filename = file.unwrap().file_name();
+        if !filename.to_str().unwrap().ends_with(".mp3") {
+            continue;
+        }
+        writeln!(script_file).expect(write_error);
+        writeln!(script_file, "file={}", filename.to_str().unwrap()).expect(write_error);
+        writeln!(script_file, "track=TODO").expect(write_error);
+        writeln!(script_file, "title=TODO").expect(write_error);
+    }
+
+    println!("Script created");
+}
+
+fn read_file(pathname: &Path) -> String {
+    read_to_string(pathname).expect("Unable to read file")
 }
 
 fn parse_script(script: String) -> Vec<Track> {
