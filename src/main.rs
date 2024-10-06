@@ -3,22 +3,40 @@ use std::fs::read_to_string;
 use std::io;
 use std::io::Write;
 use std::path::Path;
+use clap::Parser;
+
+#[derive(Parser, Debug)]
+#[command(version, about, long_about = None)]
+struct Args {
+    /// Only check the script, do not execute it
+    #[arg(short, long, default_value_t = false)]
+    check: bool,
+
+    /// Script pathname
+    #[arg()]
+    script: String
+}
 
 fn main() {
-    let args: Vec<String> = std::env::args().collect();
-    if args.len() != 2 {
-        let filename = args[0].split("/").last().unwrap();
-        println!("Usage: {} <path>", filename);
-        return;
-    }
+    let args = Args::parse();
 
-    let path = Path::new(&args[1]);
+    let path = Path::new(&args.script);
+    let script = read_file(path);
+    println!("Script read");
+
     let parent = path.parent().unwrap();
     set_current_dir(parent).expect(format!("Unable to change directory to {}", parent.to_str().unwrap()).as_str());
-    let script = read_file(path);
+
     let tracks = parse_script(script);
+    println!("Script parsed, {} tracks", tracks.iter().filter(|track| !track.is_default).count());
+
     validate_script(&tracks);
-    process_script(&tracks);
+    println!("Script validated");
+
+    if !args.check {
+        process_script(&tracks);
+        println!("Script processed, no errors");
+    }
 }
 
 #[derive(Debug, Clone)]
