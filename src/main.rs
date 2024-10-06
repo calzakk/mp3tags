@@ -25,7 +25,9 @@ fn main() {
     println!("Script read");
 
     let parent = path.parent().unwrap();
-    set_current_dir(parent).expect(format!("Unable to change directory to {}", parent.to_str().unwrap()).as_str());
+    if parent.is_dir() {
+        set_current_dir(parent).expect(format!("Unable to change directory to {}", parent.to_str().unwrap()).as_str());
+    }
 
     let tracks = parse_script(script);
     println!("Script parsed, {} tracks", tracks.iter().filter(|track| !track.is_default).count());
@@ -79,9 +81,16 @@ fn parse_script(script: String) -> Vec<Track> {
     let mut tracks = Vec::new();
 
     let lines: Vec<&str> = script.lines().collect();
+    let mut line_number = 0;
+
     for line in lines {
+        line_number += 1;
+
         let trimmed = line.trim();
         if trimmed.is_empty() {
+            continue;
+        }
+        if trimmed.starts_with("#") {
             continue;
         }
 
@@ -105,6 +114,8 @@ fn parse_script(script: String) -> Vec<Track> {
             track.genre = trimmed[6..].to_string();
         } else if line.starts_with("delete_tag=") {
             track.delete_tags.push(trimmed[11..].to_string());
+        } else {
+            panic!("Error on line {}: {}", line_number, line);
         }
     }
     tracks.push(track);
@@ -196,9 +207,10 @@ fn execute_command(command: &str, args: Vec<&str>) {
         .output()
         .expect("Failed to execute command");
 
+    io::stdout().write_all(&output.stdout).unwrap();
+    io::stderr().write_all(&output.stderr).unwrap();
+
     if !output.status.success() {
-        io::stdout().write_all(&output.stdout).unwrap();
-        io::stderr().write_all(&output.stderr).unwrap();
         panic!("Error: exit code {}", output.status.code().unwrap());
     }
 }
