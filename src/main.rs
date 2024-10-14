@@ -261,12 +261,12 @@ fn execute_command(command: &str, args: Vec<&str>) {
 }
 
 fn replacements(filename: &String, track: &Track, defaults: &Track) -> String {
-    filename.replace("{{track}}", &track.track_number)
-        .replace("{{title}}", &track.title)
-        .replace("{{artist}}", get_value_or_default(&track.artist, &defaults.artist))
-        .replace("{{album}}", get_value_or_default(&track.album, &defaults.album))
-        .replace("{{year}}", get_value_or_default(&track.year, &defaults.year))
-        .replace("{{genre}}", get_value_or_default(&track.genre, &defaults.genre))
+    filename.replace("{track}", &track.track_number)
+        .replace("{title}", &track.title)
+        .replace("{artist}", get_value_or_default(&track.artist, &defaults.artist))
+        .replace("{album}", get_value_or_default(&track.album, &defaults.album))
+        .replace("{year}", get_value_or_default(&track.year, &defaults.year))
+        .replace("{genre}", get_value_or_default(&track.genre, &defaults.genre))
 }
 
 fn get_value_or_default<'a>(value: &'a str, default: &'a str) -> &'a str {
