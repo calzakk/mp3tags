@@ -16,6 +16,10 @@ struct Args {
     #[arg(short, long, default_value_t = false)]
     new: bool,
 
+    /// List the current tags for all files in the script
+    #[arg(short, long, default_value_t = false)]
+    list_tags: bool,
+
     /// Script pathname
     #[arg()]
     script: String
@@ -38,6 +42,11 @@ fn main() {
 
     let tracks = parse_script(script);
     println!("Script parsed, {} tracks", tracks.iter().filter(|track| !track.is_default).count());
+
+    if args.list_tags {
+        list_existing_tags(&tracks);
+        return;
+    }
 
     validate_script(&tracks);
     println!("Script validated");
@@ -168,6 +177,12 @@ fn parse_script(script: String) -> Vec<Track> {
     tracks
 }
 
+fn list_existing_tags(tracks: &Vec<Track>) {
+    for track in tracks.iter().filter(|track| !track.is_default) {
+        list_tags(track);
+    }
+}
+
 fn validate_script(tracks: &Vec<Track>) {
     let mut track_number = 0;
     for track in tracks {
@@ -202,6 +217,15 @@ fn process_script(tracks: &Vec<Track>) {
         delete_tags(&track, &defaults);
         rename_file(&track, &defaults);
     }
+}
+
+fn list_tags(track: &Track) {
+    println!("{}", track.original_filename);
+    let args = vec![
+        "--print-data",
+        &track.original_filename
+    ];
+    execute_command("editag", args);
 }
 
 fn edit_tags(track: &Track, defaults: &Track) {
