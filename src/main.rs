@@ -96,7 +96,7 @@ fn set_current_directory(script_pathname: &Path) {
 }
 
 fn new_script(script_pathname: &Path) {
-    let files = read_dir(".").unwrap();
+    let files = read_dir_sorted(".");
 
     let create_error = "Unable to create file";
     let write_error = "Unable to write to file";
@@ -113,7 +113,7 @@ fn new_script(script_pathname: &Path) {
     writeln!(script_file, "delete_tag=TSSE").expect(write_error);
 
     for file in files {
-        let filename = file.unwrap().file_name();
+        let filename = file.file_name();
         if !filename.to_str().unwrap().ends_with(".mp3") {
             continue;
         }
@@ -124,6 +124,12 @@ fn new_script(script_pathname: &Path) {
     }
 
     println!("Script created");
+}
+
+fn read_dir_sorted(path: &str) -> Vec<std::fs::DirEntry> {
+    let mut files: Vec<std::fs::DirEntry> = read_dir(path).unwrap().filter_map(Result::ok).collect();
+    files.sort_by_key(|file| file.file_name());
+    files
 }
 
 fn read_file(pathname: &Path) -> String {
