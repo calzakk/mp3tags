@@ -69,6 +69,7 @@ struct Track {
     year: String,
     genre: String,
     delete_tags: Vec<String>,
+    delete_all_tags: bool,
 }
 
 impl Track {
@@ -84,6 +85,7 @@ impl Track {
             year: String::new(),
             genre: String::new(),
             delete_tags: Vec::new(),
+            delete_all_tags: false,
         }
     }
 }
@@ -111,6 +113,7 @@ fn new_script(script_pathname: &Path) {
     writeln!(script_file, "delete_tag=TXXX").expect(write_error);
     writeln!(script_file, "delete_tag=TPE2").expect(write_error);
     writeln!(script_file, "delete_tag=TSSE").expect(write_error);
+    writeln!(script_file, "delete_all_tags=false").expect(write_error);
 
     for file in files {
         let filename = file.file_name();
@@ -196,6 +199,8 @@ fn parse_script(script: String) -> Vec<Track> {
             track.genre = trimmed[6..].to_string();
         } else if line.starts_with("delete_tag=") {
             track.delete_tags.push(trimmed[11..].to_string());
+        } else if line.starts_with("delete_all_tags=") {
+            track.delete_all_tags = &trimmed[16..] == "true";
         } else {
             panic!("Error on line {}: {}", line_number, line);
         }
@@ -241,8 +246,9 @@ fn process_script(tracks: &Vec<Track>) {
         }
 
         println!("{}", track.original_filename);
-        edit_tags(&track, &defaults);
+        delete_all_tags(&track, &defaults);
         delete_tags(&track, &defaults);
+        edit_tags(&track, &defaults);
         rename_file(&track, &defaults);
     }
 }
@@ -267,6 +273,16 @@ fn edit_tags(track: &Track, defaults: &Track) {
         &track.original_filename
     ];
     execute_command("editag", args);
+}
+
+fn delete_all_tags(track: &Track, defaults: &Track) {
+    if defaults.delete_all_tags || track.delete_all_tags {
+        let args = vec![
+            "--delete-all-tags",
+            &track.original_filename
+        ];
+        execute_command("editag", args);
+    }
 }
 
 fn delete_tags(track: &Track, defaults: &Track) {
