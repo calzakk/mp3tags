@@ -117,10 +117,13 @@ fn new_script(script_pathname: &Path) {
         if !filename.to_str().unwrap().ends_with(".mp3") {
             continue;
         }
+
+        let (track_number, title) = parse_filename(filename.to_str().unwrap());
+
         writeln!(script_file).expect(write_error);
         writeln!(script_file, "file={}", filename.to_str().unwrap()).expect(write_error);
-        writeln!(script_file, "track=TODO").expect(write_error);
-        writeln!(script_file, "title=TODO").expect(write_error);
+        writeln!(script_file, "track={}", track_number).expect(write_error);
+        writeln!(script_file, "title={}", title).expect(write_error);
     }
 
     println!("Script created");
@@ -130,6 +133,25 @@ fn read_dir_sorted(path: &str) -> Vec<std::fs::DirEntry> {
     let mut files: Vec<std::fs::DirEntry> = read_dir(path).unwrap().filter_map(Result::ok).collect();
     files.sort_by_key(|file| file.file_name());
     files
+}
+
+fn parse_filename(filename: &str) -> (String, String) {
+    let filename = filename.trim_end_matches(".mp3");
+    let parts: Vec<&str> = filename.splitn(2, ' ').collect();
+
+    if parts.len() != 2 {
+        // no track number
+        return ("TODO".to_string(), parts[0].to_string());
+    }
+
+    if parts[0].parse::<i32>().is_err() {
+        // not a number
+        return ("TODO".to_string(), filename.to_string());
+    }
+
+    let track_number = parts[0];
+    let title = parts[1].trim_start_matches(|c| c == '-' || c == ' '); // remove leading spaces and hyphens
+    (track_number.to_string(), title.to_string())
 }
 
 fn read_file(pathname: &Path) -> String {
